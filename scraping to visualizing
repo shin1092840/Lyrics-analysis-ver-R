@@ -22,8 +22,8 @@ library(ggsci)
 ##https://medium.com/@boplantinga/what-do-spotifys-audio-features-tell-us-about-this-year-s-eurovision-song-contest-66ad188e112a
 
 # set up Spotify client ID and client secret
-Sys.setenv(SPOTIFY_CLIENT_ID = '4d6dc30936cc4b16b293d8c90951d18f')
-Sys.setenv(SPOTIFY_CLIENT_SECRET = '7897ab4c37354efcb592182f7e8a11c6')
+Sys.setenv(SPOTIFY_CLIENT_ID = '')
+Sys.setenv(SPOTIFY_CLIENT_SECRET = '')
 
 
 #using spoitfyr
