@@ -1,0 +1,158 @@
+# loading required packages
+library(spotifyr)
+library(plyr)
+library(tidyverse)
+library(httr)
+library(stringr)
+library(ggthemes)
+library(tidytext)
+library(wordcloud)
+library(ggridges)
+library(wesanderson)
+library(yarrr)
+library(knitr)
+library(kableExtra)
+library(radarchart)
+library(syuzhet)
+library(ggsci)
+
+##https://exploratory.io/note/2ac8ae888097/SpotifyJRockRockHard-Rock-7183595689717906
+##https://rpubs.com/womeimingzi11/how_my_spotify_looks_like
+##https://medium.com/@simranvatsa5/taylor-f656e2a09cc3
+##https://medium.com/@boplantinga/what-do-spotifys-audio-features-tell-us-about-this-year-s-eurovision-song-contest-66ad188e112a
+
+# set up Spotify client ID and client secret
+Sys.setenv(SPOTIFY_CLIENT_ID = '4d6dc30936cc4b16b293d8c90951d18f')
+Sys.setenv(SPOTIFY_CLIENT_SECRET = '7897ab4c37354efcb592182f7e8a11c6')
+
+
+#using spoitfyr
+mr.children <- get_artist_audio_features('mr.chidren')
+
+mr.children <- mr.children %>% filter(album_name == "REFLECTION{Naked}" | 
+                              album_name == "SENSE" | album_name == "SUPERMARKET FANTASY" |
+                              album_name == "HOME" | album_name == "I LOVE U" |
+                              album_name == "シフクノオト" | album_name == "It's a wonderful world"|
+                              album_name == "Q" | album_name == "DISCOVERY" |
+                              album_name == "BOLERO" | album_name == "深海" |
+                              album_name == "Atomic Heart" | album_name == "Versus" |
+                              album_name == "Kind of Love" | album_name == "EVERYTHING")
+
+
+# valence
+mr.children %>% ggplot(aes(x = valence, y = album_name, fill = ..x..)) + 
+  geom_density_ridges_gradient(scale = 1.0) + 
+  scale_fill_gradient(low = "white", high = "seagreen") + 
+  theme_fivethirtyeight() + 
+  theme(panel.background = element_rect(fill = "white")) +
+  theme(plot.background = element_rect(fill = "white")) +
+  xlim(0,1) +
+  theme(legend.position = "none")
+
+
+# table: album by mean valence
+mr.children %>% 
+  group_by(album_name) %>% 
+  summarise(mean(valence)) %>% 
+  arrange(desc(`mean(valence)`)) %>% 
+  kable() %>% 
+  kable_styling("striped", full_width = F, position = "left") %>% 
+  row_spec(row = 1:15, background = "blue", color = "#e4f5ff")
+
+# table: top 5 songs by valence
+mr.children %>% 
+  select(track_name, album_name, valence) %>% 
+  top_n(10) %>% 
+  arrange(-valence) %>% 
+  kable() %>% 
+  kable_styling("striped", full_width = F, position = "left") %>% 
+  row_spec(row = 1:10, background = "azure", color = "deeppink")
+
+# sonic score graph
+pirateplot(valence + danceability + energy ~ album_release_year, mr.children,
+           pal = c(wes_palettes$GrandBudapest2, wes_palettes$Moonrise3[1:2]), 
+           xlab = "album", ylab = "sonic score",
+           theme = 0, point.o = 0.7, avg.line.o = 1, jitter.val = .05, 
+           bty = "n", cex.axis = 0.6, xaxt = "n") 
+axis(1, cex.axis = 0.6, lwd = 0)
+legend("topright", c("1: Taylor Swift", "2: Fearless", "3: Speak Now", "4: Red", "5: 1989", "6: reputation"), bty = "n", cex = 0.6) 
+
+
+# 1989 sonic scores
+mr.children %>% 
+  mutate(sonic_score = valence + danceability + energy) %>% 
+  select(album_name, track_name, sonic_score) %>% 
+  arrange(desc(sonic_score)) %>% 
+  filter(album_name == "深海") %>% 
+  kable() %>% 
+  kable_styling(full_width = F, position = "left") %>% 
+  row_spec(row = 1:13, background = "seashell", color = "#b39db2")
+
+
+# album by danceability
+mr.children %>% 
+  group_by(album_name) %>% 
+  summarise(mean(danceability)) %>% 
+  arrange(desc(`mean(danceability)`)) %>% 
+  kable() %>% 
+  kable_styling(full_width = F, position = "left") %>% 
+  row_spec(row = 1:15, background = "seashell", color = "#b39db2")
+
+
+##sentiment analysis
+
+mr_children20 <- mr_children20_s$Lyric_en
+mr_children30 <- mr_children30_s$Lyric_en
+mr_children40 <- mr_children40_s$Lyric_en
+
+#convert all text to lower case 
+mr_children20<- tolower(mr_children20) 
+mr_children30<- tolower(mr_children30) 
+mr_children40<- tolower(mr_children40) 
+
+
+wordcloud(mr_children20,min.freq = 10,colors=brewer.pal(8, "Dark2"),random.color = TRUE,max.words = 500);
+title("20's")
+wordcloud(mr_children30,min.freq = 10,colors=brewer.pal(8, "Dark2"),random.color = TRUE,max.words = 500)
+wordcloud(mr_children40,min.freq = 10,colors=brewer.pal(8, "Dark2"),random.color = TRUE,max.words = 500)
+
+
+#getting emotions using in-built function 
+mysentiment_20 <-get_nrc_sentiment((mr_children20)) 
+mysentiment_30 <-get_nrc_sentiment((mr_children30)) 
+mysentiment_40 <-get_nrc_sentiment((mr_children40)) 
+
+Sentimentscores_20<-data.frame(colSums(mysentiment_20[,])) 
+Sentimentscores_30<-data.frame(colSums(mysentiment_30[,])) 
+Sentimentscores_40<-data.frame(colSums(mysentiment_40[,])) 
+
+names(Sentimentscores_20)<-"Score" 
+Sentimentscores_20<-cbind("sentiment"=rownames(Sentimentscores_20),Sentimentscores_20) 
+rownames(Sentimentscores_20)<-NULL 
+names(Sentimentscores_30)<-"Score" 
+Sentimentscores_30<-cbind("sentiment"=rownames(Sentimentscores_30),Sentimentscores_30) 
+rownames(Sentimentscores_30)<-NULL 
+names(Sentimentscores_40)<-"Score" 
+Sentimentscores_40<-cbind("sentiment"=rownames(Sentimentscores_40),Sentimentscores_40) 
+rownames(Sentimentscores_40)<-NULL 
+
+ggplot(data=Sentimentscores_20,aes(x=sentiment,y=Score))+geom_bar(aes(fill=sentiment),stat = "identity")+ theme(legend.position="none")+ xlab("Sentiments")+ylab("scores")+ggtitle("Sentiments of Mr.Sakurai in his 20's")+theme_minimal()
+ggplot(data=Sentimentscores_30,aes(x=sentiment,y=Score))+geom_bar(aes(fill=sentiment),stat = "identity")+ theme(legend.position="none")+ xlab("Sentiments")+ylab("scores")+ggtitle("Sentiments of Mr.Sakurai in his 30's")+theme_minimal()
+ggplot(data=Sentimentscores_40,aes(x=sentiment,y=Score))+geom_bar(aes(fill=sentiment),stat = "identity")+ theme(legend.position="none")+ xlab("Sentiments")+ylab("scores")+ggtitle("Sentiments of Mr.Sakurai in his 40's")+theme_minimal() 
+
+sentiment_20 <- apply(mysentiment_20,2,mean)
+show(sentiment_20)
+sentiment_30 <- apply(mysentiment_30,2,mean)
+show(sentiment_30)
+sentiment_40 <- apply(mysentiment_40,2,mean)
+show(sentiment_40)
+
+sentimentall <-rbind(sentiment_20,sentiment_30,sentiment_40)
+show(sentimentall)
+sentimentall <- list("sentiment_20" = c(3.415584,5.103896,2.584416,4.610390, 5.350649, 4.753247,2.922078, 5.220779, 8.974026 ,9.519481),
+                    "sentiment_30" = c(3.265957,5.457447,2.446809,4.265957, 5.574468, 4.531915, 2.978723, 5.031915, 8.414894, 9.840426),
+                    "sentiment_40" = c(3.368421, 5.771930 ,2.771930, 4.964912, 5.596491, 4.912281, 3.228070, 4.964912, 8.877193, 9.473684))
+
+labs <- c("anger","anticipation","disgust","fear","joy","sadness","surprise","trust","negative","positive")
+chartJSRadar(sentimentall, labs=labs,polyAlpha = 0.1, 
+             lineAlpha = 0.8, maxScale = 10, colMatrix = matrix(c(0, 255, 255, 255, 185, 15, 139, 0, 139, 255, 0, 0, 201, 167, 198, 0, 0, 0), byrow = F, nrow = 3))
